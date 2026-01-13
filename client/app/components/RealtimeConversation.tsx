@@ -50,6 +50,7 @@ export default function RealtimeConversation({
   const [waitingForAI, setWaitingForAI] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [limitChecked, setLimitChecked] = useState(false);
+  const [forceShimmer, setForceShimmer] = useState(false);
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -62,6 +63,14 @@ export default function RealtimeConversation({
     if (savedVoice) {
       setSelectedVoice(savedVoice);
       setTempVoice(savedVoice);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      setForceShimmer(true);
+      const timer = setTimeout(() => setForceShimmer(false), 1000);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -973,13 +982,13 @@ export default function RealtimeConversation({
           <button
             onClick={startConversation}
             className={`px-8 py-3 rounded-lg font-medium shadow-lg transition-colors ${
-              limitReached || !limitChecked
+              limitReached
                 ? "bg-gray-400 text-gray-600 cursor-not-allowed"
                 : "bg-green-600 text-white hover:bg-green-700"
-            }`}
-            disabled={limitReached || !limitChecked}
+            } ${!limitChecked || forceShimmer ? "shimmer-button" : ""} min-w-[220px]`}
+            disabled={limitReached}
           >
-            Start Conversation
+            {!limitChecked || forceShimmer ? "\u00a0" : "Start Conversation"}
           </button>
         ) : (
           <>
