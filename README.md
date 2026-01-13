@@ -258,11 +258,112 @@ cd service && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 cd client && npm run dev
 ```
 
+## Milestone R: Realtime Mode (Beta)
+
+Realtime mode provides ultra-low-latency voice conversation using OpenAI's Realtime API.
+
+**Status**: ✅ Implemented and Functional
+
+### Features
+- **Natural conversation**: No need to press buttons - just speak naturally
+- **Ultra-low latency**: AI responds in ~1-2 seconds after you stop speaking
+- **Auto-play**: Voice starts automatically without clicking play button
+- **Model selection**: 4 OpenAI Realtime models to choose from
+- **Voice selection**: 4 different voice options (shimmer, nova, alloy, echo)
+- **Theme support**: Dark/light mode with system preference detection
+- **Conversation display**: Real-time transcript of user and AI speech
+
+### Architecture
+```
+Browser (WebSocket) <---> Service (Secure Proxy) <---> OpenAI Realtime API
+```
+
+**Security**: API keys stay on the server - browser never has access
+
+### Settings & Customization
+
+**Available Models:**
+- `gpt-4o-realtime-preview` (推荐) - Best quality, balanced speed
+- `gpt-4o-mini-realtime-preview` (快速) - Faster responses, good quality
+- `gpt-realtime` - Latest GPT Realtime model
+- `gpt-realtime-mini` - Compact GPT Realtime model
+
+**Available Voices:**
+- `shimmer` (女声，自然) - Natural female voice (default)
+- `nova` (女声，年轻) - Young female voice
+- `alloy` (中性) - Neutral voice
+- `echo` (男声，深沉) - Deep male voice
+
+**Theme Options:**
+- Light mode
+- Dark mode
+- Auto-detect system preference (on first visit)
+
+Settings are persisted in localStorage and restored on next visit.
+
+### How to Use
+
+1. Start both services (see "Running Both Services" above)
+2. Open `http://localhost:3000`
+3. Click "Realtime Mode (Beta)" button
+4. (Optional) Click settings icon ⚙️ to configure model, voice, or theme
+5. Click "Start Conversation"
+6. Grant microphone permissions
+7. Speak naturally in English
+8. AI responds automatically when you stop speaking
+9. Click "Stop Conversation" when done
+
+### Technical Implementation
+
+**Audio Streaming:**
+- PCM16 format at 24kHz sample rate
+- Continuous streaming (every 500ms) to keep connection alive
+- Voice Activity Detection (VAD) with 800ms silence threshold
+- Audio queue system for sequential playback without overlap
+
+**WebSocket Events:**
+- `audio` - Browser sends audio chunks to server
+- `stop_speaking` - Browser signals end of user speech
+- `audio` - Server sends AI audio response chunks
+- `user_transcript` - Real-time transcription of user speech
+- `ai_transcript` - Real-time transcription of AI response
+- `response_started` - AI response generation started
+- `response_done` - AI response generation complete
+
+### Recent Improvements
+
+**Bug Fixes:**
+- ✅ Fixed audio disappearing after multiple conversation rounds (added timeout mechanism)
+- ✅ Fixed stack overflow in audio encoding (chunked processing)
+- ✅ Fixed audio overlap issues (audio queue system)
+
+**Enhancements:**
+- ✅ Added AI clarification instruction for better speech recognition accuracy
+- ✅ Improved error handling and connection stability
+- ✅ Full-page theme support (not just component-level)
+
+### Testing & Latency Metrics
+
+Test latency:
+
+1. Start a Realtime conversation
+2. Say a short phrase (e.g., "Hello, how are you?")
+3. Measure time from when you stop speaking to when AI audio starts
+4. Repeat 5 times and record the average
+
+**Target**: Average latency < 2000ms
+
+**Note**: Realtime mode requires OpenAI API access to the Realtime API (gpt-4o-realtime-preview).
+
 ## Development Progress
 
 - ✅ Milestone 0: Project setup (.gitignore, .env.example, README)
 - ✅ Milestone 1: Backend implementation (FastAPI, STT, LLM, TTS, SQLite)
 - ✅ Milestone 2: Frontend implementation (Next.js client)
+- ✅ Milestone R0: Realtime documentation
+- ✅ Milestone R1: Minimal Realtime Voice (Fully implemented with model/voice selection and theme support)
+- ⏳ Milestone R2: Captions Drawer (Future)
+- ⏳ Milestone R3: Advanced Tuning (Future)
 
 See [docs/SPEC.md](docs/SPEC.md) for technical specifications.
 

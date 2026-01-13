@@ -1,8 +1,9 @@
 import uuid
+import secrets
 from contextlib import contextmanager
 from typing import Optional
 
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -13,6 +14,8 @@ from .database import init_db, save_conversation
 from .services.stt import transcribe_audio
 from .services.llm import generate_feedback
 from .services.tts import text_to_speech, audio_to_base64
+from .realtime.routes import router as realtime_router
+from .usage import get_or_create_client_usage, MAX_AI_MS
 
 
 # Pydantic models for request/response
@@ -20,10 +23,10 @@ class ErrorResponse(BaseModel):
     error: dict
 
 
-def get_audio_duration(audio_bytes: bytes) -> float:
+def get_audio_duration(audio_bytes: bytes, suffix: str = "") -> float:
     """Get audio duration in seconds."""
     import tempfile
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         tmp.write(audio_bytes)
         tmp.flush()
         try:
@@ -40,11 +43,14 @@ app = FastAPI(title="AI Tutor API", version="0.1.0")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Realtime API routes
+app.include_router(realtime_router)
 
 
 @app.on_event("startup")
@@ -55,6 +61,8 @@ async def startup_event():
 
 @app.post("/api/talk")
 async def talk(
+    request: Request,
+    response: Response,
     audio: UploadFile = File(..., description="Audio file (webm/wav/mp3)"),
     session_id: Optional[str] = Form(None, description="Session ID (optional)")
 ):
@@ -72,6 +80,21 @@ async def talk(
         session_id = str(uuid.uuid4())
 
     try:
+        client_id = (
+            request.headers.get("X-Client-Id")
+            or request.cookies.get("client_id")
+            or secrets.token_urlsafe(16)
+        )
+        if "client_id" not in request.cookies:
+            response.set_cookie(
+                key="client_id",
+                value=client_id,
+                max_age=60 * 60 * 24 * 30,
+                httponly=True,
+                samesite=settings.COOKIE_SAMESITE,
+                secure=settings.COOKIE_SECURE,
+            )
+
         # Read audio bytes
         audio_bytes = await audio.read()
 
@@ -83,8 +106,9 @@ async def talk(
             )
 
         # Validate audio duration
+        duration = None
         try:
-            duration = get_audio_duration(audio_bytes)
+            duration = get_audio_duration(audio_bytes, suffix=audio.filename or "")
             if duration > settings.MAX_AUDIO_LENGTH_SECONDS:
                 raise HTTPException(
                     status_code=400,
@@ -98,6 +122,9 @@ async def talk(
                 raise
             # Continue anyway - let STT handle invalid audio
             pass
+
+        # Enforce per-session user speech limit
+        usage = get_or_create_client_usage(client_id)
 
         # Step 1: STT - Transcribe audio
         try:
@@ -138,6 +165,22 @@ async def talk(
                 status_code=500,
                 detail={"error": {"code": error_code, "message": str(e)}}
             )
+
+        # Enforce per-session AI speech limit (based on audio duration)
+        try:
+            ai_duration = get_audio_duration(audio_bytes_result, suffix=f".{audio_format}")
+            ai_ms = int(ai_duration * 1000)
+            if not usage.add_ai_ms(ai_ms):
+                raise HTTPException(
+                    status_code=400,
+                    detail={"error": {"code": "LIMIT_REACHED", "message": "Time usage limit exceeded."}}
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            # If duration check fails, continue without blocking response
+            import logging
+            logging.warning(f"Could not check AI audio duration: {e}")
 
         # Save to database
         import json

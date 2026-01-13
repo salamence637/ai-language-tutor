@@ -60,6 +60,6 @@ temp/
 *.tmp
 
 
-CLAUDE.MD
-TASKS.MD
-docs/SPEC.md
+*.md
+!README.md
+!client/README.md
