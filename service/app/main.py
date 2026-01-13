@@ -43,7 +43,7 @@ app = FastAPI(title="AI Tutor API", version="0.1.0")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -80,14 +80,19 @@ async def talk(
         session_id = str(uuid.uuid4())
 
     try:
-        client_id = request.cookies.get("client_id") or secrets.token_urlsafe(16)
+        client_id = (
+            request.headers.get("X-Client-Id")
+            or request.cookies.get("client_id")
+            or secrets.token_urlsafe(16)
+        )
         if "client_id" not in request.cookies:
             response.set_cookie(
                 key="client_id",
                 value=client_id,
                 max_age=60 * 60 * 24 * 30,
                 httponly=True,
-                samesite="lax",
+                samesite=settings.COOKIE_SAMESITE,
+                secure=settings.COOKIE_SECURE,
             )
 
         # Read audio bytes

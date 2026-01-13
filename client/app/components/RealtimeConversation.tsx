@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { getClientId } from "../lib/clientId";
 
 interface RealtimeConversationProps {
   onComplete?: () => void;
@@ -69,6 +70,9 @@ export default function RealtimeConversation({
       try {
         const res = await fetch(`${API_BASE_URL}/api/realtime/limit`, {
           credentials: "include",
+          headers: {
+            "X-Client-Id": getClientId() || "",
+          },
         });
         if (res.ok) {
           const data = await res.json();
@@ -292,7 +296,10 @@ export default function RealtimeConversation({
       // Connect to backend to create session
       const response = await fetch(`${API_BASE_URL}/api/realtime/offer`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Client-Id": getClientId() || "",
+        },
         credentials: "include",
         body: JSON.stringify({
           sdp: "placeholder", // We don't need actual SDP for WebSocket-based implementation

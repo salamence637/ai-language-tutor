@@ -18,6 +18,8 @@ class SessionUsage:
 
     def add_ai_ms(self, amount_ms: int) -> bool:
         if self.ai_ms + amount_ms > MAX_AI_MS:
+            # Mark as exhausted so future checks block immediately.
+            self.ai_ms = MAX_AI_MS
             return False
         self.ai_ms += amount_ms
         return True

@@ -9,6 +9,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Request, Response
 from pydantic import BaseModel
 
 from .session import create_realtime_session, get_session, close_session
+from ..config import settings
 from ..usage import get_or_create_client_usage, MAX_AI_MS
 
 router = APIRouter(prefix="/api/realtime", tags=["realtime"])
@@ -73,14 +74,19 @@ async def create_webrtc_offer(offer: SDPOffer, request: Request, response: Respo
     This creates a session with OpenAI Realtime API and returns session info.
     """
     session_id = str(uuid.uuid4())
-    client_id = request.cookies.get("client_id") or secrets.token_urlsafe(16)
+    client_id = (
+        request.headers.get("X-Client-Id")
+        or request.cookies.get("client_id")
+        or secrets.token_urlsafe(16)
+    )
     if "client_id" not in request.cookies:
         response.set_cookie(
             key="client_id",
             value=client_id,
             max_age=60 * 60 * 24 * 30,
             httponly=True,
-            samesite="lax",
+            samesite=settings.COOKIE_SAMESITE,
+            secure=settings.COOKIE_SECURE,
         )
 
     try:
@@ -117,14 +123,19 @@ async def create_webrtc_offer(offer: SDPOffer, request: Request, response: Respo
 
 @router.get("/limit")
 async def get_limit_status(request: Request, response: Response):
-    client_id = request.cookies.get("client_id") or secrets.token_urlsafe(16)
+    client_id = (
+        request.headers.get("X-Client-Id")
+        or request.cookies.get("client_id")
+        or secrets.token_urlsafe(16)
+    )
     if "client_id" not in request.cookies:
         response.set_cookie(
             key="client_id",
             value=client_id,
             max_age=60 * 60 * 24 * 30,
             httponly=True,
-            samesite="lax",
+            samesite=settings.COOKIE_SAMESITE,
+            secure=settings.COOKIE_SECURE,
         )
 
     usage = get_or_create_client_usage(client_id)
