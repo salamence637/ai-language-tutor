@@ -58,7 +58,7 @@ export default function AudioRecorder({ onRecordingComplete, isDisabled }: Audio
         });
       }, 1000);
     } catch (error) {
-      console.error('Error accessing microphone:', error);
+      // console.error('Error accessing microphone:', error);
       alert('Unable to access microphone. Please ensure you have granted permission.');
     }
   };

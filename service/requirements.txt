@@ -7,3 +7,6 @@ python-dotenv==1.0.1
 audiofile==1.4.0
 pytest==8.3.3
 httpx==0.27.2
+websockets==13.1
+aiohttp==3.10.11
+
