@@ -716,15 +716,6 @@ export default function RealtimeConversation({
       }
     };
 
-    source.onerror = (error) => {
-      clearTimeout(playbackTimeout);
-      // console.error(`[PLAYBACK_ERROR] Audio playback error. Response ID: ${currentResponseIdRef.current || 'none'}`, error);
-      isPlayingRef.current = false;
-      setWaitingForAI(false); // Show Done Speaking button again even on error
-      setStatus("connected");
-      playScheduledRef.current = false; // Reset on error
-    };
-
     isPlayingRef.current = true;
     source.start();
     // console.log(`[PLAYBACK] Audio started. Total samples: ${float32.length}, Duration: ${(float32.length / 24000).toFixed(2)}s`);
