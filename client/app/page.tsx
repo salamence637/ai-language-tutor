@@ -109,7 +109,6 @@ export default function Home() {
                 'bg-green-600'
               }`}></div>
               <span className="font-medium text-gray-700 capitalize">
-                {status === 'idle' && 'Ready'}
                 {status === 'recording' && 'Recording...'}
                 {status === 'uploading' && 'Uploading audio...'}
                 {status === 'generating' && 'Generating feedback...'}
