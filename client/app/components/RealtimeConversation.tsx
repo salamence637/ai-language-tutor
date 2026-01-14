@@ -10,12 +10,12 @@ interface RealtimeConversationProps {
 }
 
 const MODELS = [
-  { value: "gpt-4o-realtime-preview", label: "GPT-4o Realtime (recommended)" },
+  // { value: "gpt-4o-realtime-preview", label: "GPT-4o Realtime (recommended)" },
   {
     value: "gpt-4o-mini-realtime-preview",
     label: "GPT-4o Mini Realtime (fast)",
   },
-  { value: "gpt-realtime", label: "GPT Realtime" },
+  // { value: "gpt-realtime", label: "GPT Realtime" },
   { value: "gpt-realtime-mini", label: "GPT Realtime Mini" },
 ];
 
@@ -985,7 +985,9 @@ export default function RealtimeConversation({
               limitReached
                 ? "bg-gray-400 text-gray-600 cursor-not-allowed"
                 : "bg-green-600 text-white hover:bg-green-700"
-            } ${!limitChecked || forceShimmer ? "shimmer-button" : ""} min-w-[220px]`}
+            } ${
+              !limitChecked || forceShimmer ? "shimmer-button" : ""
+            } min-w-[220px]`}
             disabled={limitReached}
           >
             {!limitChecked || forceShimmer ? "\u00a0" : "Start Conversation"}
